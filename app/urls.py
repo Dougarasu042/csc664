@@ -3,5 +3,5 @@ from . import views
 
 # url Config
 urlpatterns = [
-    path('', views.say_hello)
+    path('', views.say_hello)  
 ]
