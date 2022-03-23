@@ -8,5 +8,13 @@
 </head>
 <body>
     <h1>Hello From Main Front End Page</h1>
+    <tbody>
+        {% for img in images %}  
+          <tr>
+            <td>{{img.title}}</td>
+            <td><img src="/{{ BASIC_DIR }}/{{img.img}}" width="120"/></td>
+          </tr>
+          {% endfor %} 
+        </tbody>
 </body>
 </html>
