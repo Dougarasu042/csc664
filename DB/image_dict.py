@@ -17,3 +17,7 @@ class LocalDataBase:
             if hash not in self.grey_image_dict:
                 self.grey_image_dict[hash] = []
             self.grey_image_dict[hash].append(path)
+
+    def __init__(self):
+        self.binary_image_dict = self.binary_image_dict
+        self.grey_image_dict = self.grey_image_dict

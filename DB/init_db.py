@@ -3,7 +3,7 @@ import sqlite3
 import hashlib
 import cv2
 import matplotlib.pyplot as plt
-import image_dict
+# import image_dict
 
 def list_files(dir):  
     # files
@@ -64,17 +64,25 @@ def store_img(imgId, image_info):
         cursor = sqliteConnection.cursor()
         print("Connected to SQLite")
 
-        # store local 
-        dic = image_dict.LocalDataBase()
         hash, path, type, hist = image_info[2], image_info[1], image_info[0], image_info[3]
-        dic.Save_Image(hash, path, type)
+
+        # store in DB 
+        sqlite_insert_path_query = """ INSERT INTO images_path
+                                  (id, hash, path) VALUES (?, ?, ?)"""
+
+        # dic = image_dict.LocalDataBase()
+        # dic.Save_Image(hash, path, type)
 
         sqlite_insert_query = """ INSERT INTO images
                                   (id, hash, hist) VALUES (?, ?, ?)"""
 
         # Convert data into tuple format
-        data_tuple = (imgId, hash, hist)
-        cursor.execute(sqlite_insert_query, data_tuple)
+        insert_query_tuple = (imgId, hash, hist)
+        insert_query_path_tuple = (imgId, hash, path)
+
+        cursor.execute(sqlite_insert_query, insert_query_tuple)
+        cursor.execute(sqlite_insert_path_query, insert_query_path_tuple)
+
         sqliteConnection.commit()
         cursor.close()
 
@@ -116,7 +124,7 @@ for file in binary_files:
     binary_image_info.append(["binary", file, hash, hist])
 
 
-# store binary image local and in DB
+# store binary image in DB
 id = 0
 for img in binary_image_info:
     id += 1
@@ -130,7 +138,7 @@ for file in grey_files:
     grey_image_info.append(["grey", file, hash, hist])
 
 
-# store grey image local and in DB
+# store grey image in DB
 id = 0
 for img in grey_image_info:
     id += 1
