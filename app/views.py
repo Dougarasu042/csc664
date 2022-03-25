@@ -14,30 +14,56 @@ import matplotlib.pyplot as plt
 # Create your views here.
 # request handler
 def match_image(request):
-    query_image_path = request.POST.get("path").replace('.', '/Users/tonycao/Desktop/csc664/csc664/app', 1)
-    # process_img(query_image_path)
-    print('processing ', query_image_path)
-    # edge detection 
-    # Read the original image
-    img = cv2.imread(query_image_path)
-    # print('read image')
-    # Convert to graycsale
-    img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    # Blur the image for better edge detection
-    img_blur = cv2.GaussianBlur(img_gray, (3,3), 0)
-    # print('turned grayscale')
-    # Canny Edge Detection
-    edges = cv2.Canny(image=img_blur, threshold1=100, threshold2=200) # Canny Edge Detection
-    # Display Canny Edge Detection Image
-    # print('done edge detection')
-    # plt.switch_backend('Agg') 
-    # cv2.imshow('Canny Edge Detection', edges)
-    # cv2.waitKey(0) 
-    hist = cv2.calcHist([edges], [0], None, [256], [0,256])
-    print(hist)
-    query_dict = {'a' : query_image_path}
-    # print(query_dict)
-    return render(request, 'index.html', {'context': query_dict})
+    try:
+        sqliteConnection = sqlite3.connect('/Users/tonycao/Desktop/csc664/csc664/db.sqlite3')
+        cursor = sqliteConnection.cursor()
+        print("Connected to SQLite")
+
+        query_image_path = request.POST.get("path").replace('.', '/Users/tonycao/Desktop/csc664/csc664/app', 1)
+        # process_img(query_image_path)
+        # print('processing ', query_image_path)
+        # edge detection 
+        # Read the original image
+        img = cv2.imread(query_image_path)
+        # print('read image')
+        # Convert to graycsale
+        img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        # Blur the image for better edge detection
+        img_blur = cv2.GaussianBlur(img_gray, (3,3), 0)
+        # print('turned grayscale')
+        # Canny Edge Detection
+        edges = cv2.Canny(image=img_blur, threshold1=100, threshold2=200) # Canny Edge Detection
+        # Display Canny Edge Detection Image
+        # print('done edge detection')
+        # plt.switch_backend('Agg') 
+        # cv2.imshow('Canny Edge Detection', edges)
+        # cv2.waitKey(0) 
+        hist = cv2.calcHist([edges], [0], None, [256], [0,256])
+        print(hist)
+        query_dict = {'a' : query_image_path}
+        # print(query_dict)
+        
+        sqlite_get_data = """ SELECT * FROM image_paths """
+        cursor.execute(sqlite_get_data)
+        results = cursor.fetchall()
+
+        for res in results:
+            db_img = cv2.imread(res[2])
+            db_img_gray = cv2.cvtColor(db_img, cv2.COLOR_BGR2GRAY)
+            db_img_blur = cv2.GaussianBlur(db_img_gray, (3,3), 0)
+            db_edges = cv2.Canny(image=img_blur, threshold1=100, threshold2=200)
+            db_hist = cv2.calcHist([db_edges], [0], None, [256], [0,256])
+            a = cv2.compareHist(hist, db_hist, cv2.HISTCMP_CHISQR)
+            print(a)
+        
+        return render(request, 'index.html', {'context': query_dict})
+    except sqlite3.Error as error:
+        print(error)
+    finally:
+        if sqliteConnection:
+            sqliteConnection.close()
+            print("the sqlite connection is closed")
+
 
 def load_front_page(request):
     try:
@@ -45,6 +71,7 @@ def load_front_page(request):
         cursor = sqliteConnection.cursor()
         print("Connected to SQLite")
         sqlite_get_data = """ SELECT * FROM image_paths """
+        sqlite_get_data2 = """ SELECT * FROM images """
         cursor.execute(sqlite_get_data)
         results = cursor.fetchall()
 
@@ -53,6 +80,11 @@ def load_front_page(request):
             if res[1] not in image_paths:
                 image_paths[res[1]] = ''
             image_paths[res[1]] = res[2].replace('/Users/tonycao/Desktop/csc664/csc664/app', '.')
+
+        cursor.execute(sqlite_get_data2)
+        results = cursor.fetchall()
+        for res in results:
+            print(res[2])
 
         return render(request, 'hello.html', {'context': image_paths})
     except sqlite3.Error as error:

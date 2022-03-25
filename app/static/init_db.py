@@ -53,7 +53,7 @@ def process_img(photo):
     # print()
     # print(hist_plt)
 
-    return readable_hash, hist
+    return readable_hash, str(hist)
 
 
 def store_img(imgId, image_info):
