@@ -1,15 +1,14 @@
 from django.shortcuts import render
-# from django.http import HttpResponse
-# from django.http import FileResponse
 import sqlite3
-# import PIL.Image as image
-# import base64
-# import io
-# import sys
-# sys.path.insert(0, '/Users/tonycao/Desktop/csc664/csc664/app/static')
-# from init_db import process_img
 import cv2
 import matplotlib.pyplot as plt
+
+def bin_img(image):
+    img = cv2.imread(image)
+    img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    img_blur = cv2.GaussianBlur(img_gray, (3,3), 0)
+    edges = cv2.Canny(image=img_blur, threshold1=100, threshold2=200)
+    return edges
 
 # Create your views here.
 # request handler
@@ -19,44 +18,50 @@ def match_image(request):
         cursor = sqliteConnection.cursor()
         print("Connected to SQLite")
 
-        query_image_path = request.POST.get("path").replace('.', '/Users/tonycao/Desktop/csc664/csc664/app', 1)
-        # process_img(query_image_path)
-        # print('processing ', query_image_path)
-        # edge detection 
-        # Read the original image
-        img = cv2.imread(query_image_path)
-        # print('read image')
-        # Convert to graycsale
-        img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        # Blur the image for better edge detection
-        img_blur = cv2.GaussianBlur(img_gray, (3,3), 0)
-        # print('turned grayscale')
-        # Canny Edge Detection
-        edges = cv2.Canny(image=img_blur, threshold1=100, threshold2=200) # Canny Edge Detection
-        # Display Canny Edge Detection Image
-        # print('done edge detection')
-        # plt.switch_backend('Agg') 
-        # cv2.imshow('Canny Edge Detection', edges)
-        # cv2.waitKey(0) 
-        hist = cv2.calcHist([edges], [0], None, [256], [0,256])
-        print(hist)
-        query_dict = {'a' : query_image_path}
-        # print(query_dict)
+        # process query image
+        img_query_edge = bin_img('app' + request.POST.get("path"))
+        contour1, heirarchy = cv2.findContours(img_query_edge, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+        img_query_hist = cv2.imread('app' + request.POST.get("path"))
+        hist_query = cv2.calcHist([img_query_hist], [0, 1, 2], None, [256, 256, 256], [0, 256, 0, 256, 0, 256])
+        hist_query[255, 255, 255] = 0
+        cv2.normalize(hist_query, hist_query, 0, 1, cv2.NORM_MINMAX)
+        # end of process query image
         
         sqlite_get_data = """ SELECT * FROM image_paths """
         cursor.execute(sqlite_get_data)
         results = cursor.fetchall()
 
-        for res in results:
-            db_img = cv2.imread(res[2])
-            db_img_gray = cv2.cvtColor(db_img, cv2.COLOR_BGR2GRAY)
-            db_img_blur = cv2.GaussianBlur(db_img_gray, (3,3), 0)
-            db_edges = cv2.Canny(image=img_blur, threshold1=100, threshold2=200)
-            db_hist = cv2.calcHist([db_edges], [0], None, [256], [0,256])
-            a = cv2.compareHist(hist, db_hist, cv2.HISTCMP_CHISQR)
-            print(a)
+        scores = []
         
-        return render(request, 'index.html', {'context': query_dict})
+        for res in results:
+            hash_file = res[1]
+            temp_file = res[2].replace('/Users/tonycao/Desktop/csc664/csc664/', '')
+            img = bin_img(temp_file)
+            contour2, heirarchy = cv2.findContours(img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+            img_hist = cv2.imread(temp_file)
+            hist = cv2.calcHist([img_hist], [0, 1, 2], None, [256, 256, 256], [0, 256, 0, 256, 0, 256])
+            hist[255, 255, 255] = 0
+            cv2.normalize(hist, hist, 0, 1, cv2.NORM_MINMAX)
+
+            hist_diff = cv2.compareHist(hist_query, hist, cv2.HISTCMP_CORREL)
+            cont_diff = cv2.matchShapes(contour1[0], contour2[0], cv2.CONTOURS_MATCH_I1, 0)
+
+            scores.append((cont_diff, hist_diff, hash_file, temp_file))
+
+        scores.sort(key=lambda y: y[1], reverse=True)
+
+        best_match = {}
+        for index, tuple in enumerate(scores):
+            if tuple[2] not in best_match:
+                best_match[tuple[2]] = ''
+            best_match[tuple[2]] = tuple[3].replace('app/', '')
+
+        # trim results 
+        best_match = dict(list(best_match.items())[:5])
+
+        return render(request, 'index.html', {'context': best_match})
     except sqlite3.Error as error:
         print(error)
     finally:
@@ -71,7 +76,6 @@ def load_front_page(request):
         cursor = sqliteConnection.cursor()
         print("Connected to SQLite")
         sqlite_get_data = """ SELECT * FROM image_paths """
-        sqlite_get_data2 = """ SELECT * FROM images """
         cursor.execute(sqlite_get_data)
         results = cursor.fetchall()
 
@@ -79,13 +83,8 @@ def load_front_page(request):
         for res in results:
             if res[1] not in image_paths:
                 image_paths[res[1]] = ''
-            image_paths[res[1]] = res[2].replace('/Users/tonycao/Desktop/csc664/csc664/app', '.')
-
-        cursor.execute(sqlite_get_data2)
-        results = cursor.fetchall()
-        for res in results:
-            print(res[2])
-
+            image_paths[res[1]] = res[2].replace('/Users/tonycao/Desktop/csc664/csc664/app', '')
+        
         return render(request, 'hello.html', {'context': image_paths})
     except sqlite3.Error as error:
         print(error)

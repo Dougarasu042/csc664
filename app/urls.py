@@ -4,6 +4,6 @@ from . import views
 
 # url Config
 urlpatterns = [
-    path('', views.load_front_page),
-    path('match_image/', views.match_image),
+    path('', views.load_front_page, name='home'),
+    path('match_image/', views.match_image, name='results'),
 ]
