@@ -4,17 +4,22 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>Image Process</title>
 </head>
 <body>
     <h1>Hello From Main Front End Page</h1>
-    <tbody>
-        {% for img in images %}  
-          <tr>
-            <td>{{img.title}}</td>
-            <td><img src="/{{ BASIC_DIR }}/{{img.img}}" width="120"/></td>
-          </tr>
-          {% endfor %} 
-        </tbody>
+    <tbody> 
+      {% for key, value in context.items %}
+        <div>
+          <form action="/match_image/" method="post" target="_self">
+            {% csrf_token %}
+            <!-- <p>{{ value }}</p> -->
+            <!-- <img src="{{ value }}" width="10%" /> -->
+            <input type = "hidden" name = "path" value = "{{ value }}" />
+            <input type="image" src="{{ value }}" width="10%">
+          </form>
+        </div>
+      {% endfor %}
+    </tbody>
 </body>
 </html>
