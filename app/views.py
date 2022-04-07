@@ -1,4 +1,5 @@
 from django.shortcuts import render
+from django.http import FileResponse
 import sqlite3
 import cv2
 import matplotlib.pyplot as plt
@@ -56,12 +57,18 @@ def match_image(request):
         for index, tuple in enumerate(scores):
             if tuple[2] not in best_match:
                 best_match[tuple[2]] = ''
-            best_match[tuple[2]] = tuple[3].replace('app/', '')
+            best_match[tuple[2]] = tuple[3]
 
         # trim results 
         best_match = dict(list(best_match.items())[:5])
+        # print(list(best_match.values())[1])
+        # img = open(list(best_match.values())[1], 'rb')
 
-        return render(request, 'index.html', {'context': best_match})
+        # response = FileResponse(img)
+
+        # return response
+
+        return render(request, 'hello.html', {'context': best_match})
     except sqlite3.Error as error:
         print(error)
     finally:
