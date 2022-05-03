@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Query Image Matching</title>
+</head>
+<body>
+    <h1>Hello From Image Matching Page</h1>
+    <tbody> 
+        {% for key, value in context.items %}
+            <input type="image" src="{{ value }}" width="25%">
+        {% endfor %}
+      </tbody>
+</body>
+</html>
